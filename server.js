@@ -4,7 +4,7 @@ const cors = require('cors');
 
 const app = express();
 
-// 🛑 1. THE STRICT BOUNCER (Allowed Domains)
+// 🛑 1. THE STRICT BOUNCcER (Allowed Domains)
 const allowedDomains = [
     'https://nt.studyparcham.qzz.io', 
     'http://studyparcham.kesug.com',
