@@ -1,35 +1,20 @@
-require('dotenv').config();
+require('dotenv').config(); // Fixed: Lowercase 'r'
 const express = require('express');
 const cors = require('cors');
 
 const app = express();
 
-// 🛑 1. THE STRICT BOUNCcER (Allowed Domains)
-const allowedDomains = [
-    'https://nt.studyparcham.qzz.io', 
-    'http://studyparcham.kesug.com',
-    'https://missionjeet.studyparcham.qzz.io' // Tumhara naya MJ domain add kar diya
-];
-
-// 🛑 2. CUSTOM CORS MIDDLEWARE
-app.use(cors({
-    origin: function(origin, callback) {
-        if(!origin || allowedDomains.includes(origin)){
-            return callback(null, true);
-        }
-        return callback(new Error('Access Denied by StudyParcham Security.'), false);
-    },
-    optionsSuccessStatus: 200
-}));
+// 🟢 CORS BLOCK REMOVED: Now allows requests from ANY origin
+app.use(cors());
  
 app.use(express.json());
 
 // GET route for browser test
 app.get('/', (req, res) => {
-    res.send("<h1>Mission Jeet Universal Vercel Engine is Online! 🚀</h1>");
+    res.send("<h1>StudyParcham Vercel Engine is Online and Upgraded! 🚀</h1>");
 });
 
-// 🔒 THE MISSION JEET ADVANCED PROXY
+// 🔒 THE UNIVERSAL ADVANCED PROXY
 app.post('/api/v1/proxy', async (req, res) => {
     const { target_url, method, payload, headers: clientHeaders } = req.body;
 
@@ -37,31 +22,22 @@ app.post('/api/v1/proxy', async (req, res) => {
         return res.status(400).json({ success: false, error: "Missing target_url" });
     }
 
-    // 🚨 SMART HEADER NORMALIZER: 
-    // Converts all incoming headers from core-engine to lowercase. 
-    // This prevents sending duplicate headers like "Origin" AND "origin" which triggers Cloudfront Blocks!
-    const normalizedClientHeaders = {};
-    if (clientHeaders) {
-        for (const [key, value] of Object.entries(clientHeaders)) {
-            normalizedClientHeaders[key.toLowerCase()] = value;
-        }
-    }
-
-    // 🚨 MASTER FIX FOR MISSION JEET: We set MJ defaults.
+    // 🚨 MASTER FIX: We merge the Default headers with the FRONTEND headers.
+    // This allows the frontend to send the FRESH TOKEN, completely bypassing stale .env tokens!
     const fetchHeaders = {
         "accept": "application/json, text/plain, */*",
         "content-type": "application/json",
-        "origin": "https://missionjeet.in",     // Changed to Mission Jeet
-        "referer": "https://missionjeet.in/",   // Changed to Mission Jeet
+        "origin": "https://missionjeet.in",
+        "referer": "https://missionjeet.in/",
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
-        ...normalizedClientHeaders 
+        ...(clientHeaders || {}) // Injects dynamic headers from frontend
     };
 
-    // Emergency Fallback to ENV (MJ Specific)
-    if (!fetchHeaders.authorization && process.env.MJ_TOKEN) {
-        fetchHeaders.authorization = `Bearer ${process.env.MJ_TOKEN}`;
-        fetchHeaders.app_id = "1772100600"; // Exact Mission Jeet App ID
-        fetchHeaders.user_id = process.env.MJ_USER_ID;
+    // Emergency Fallback to ENV only if frontend didn't send a token
+    if (!fetchHeaders.authorization && process.env.NT_TOKEN) {
+        fetchHeaders.authorization = `Bearer ${process.env.NT_TOKEN}`;
+        fetchHeaders.app_id = "1772100600";
+        fetchHeaders.user_id = process.env.NT_USER_ID;
         fetchHeaders.platform = "3";
         fetchHeaders.version = "1";
     }
@@ -78,10 +54,10 @@ app.post('/api/v1/proxy', async (req, res) => {
         }
 
         const response = await fetch(target_url, options);
-        const text = await response.text(); 
+        const text = await response.text(); // Get raw text to prevent crashing on HTML responses
         
         try {
-            // Attempt to parse JSON strictly (Ignores WAF HTML)
+            // Attempt to parse JSON strictly
             const jsonStart = text.indexOf('{');
             const jsonEnd = text.lastIndexOf('}');
             if (jsonStart !== -1 && jsonEnd !== -1) {
@@ -94,7 +70,7 @@ app.post('/api/v1/proxy', async (req, res) => {
             console.error("Blocked by Upstream:", text);
             res.json({ 
                 success: false, 
-                error: "Matrix Firewall Blocked Vercel Request. (Likely expired token or Origin mismatch)", 
+                error: "Matrix Firewall Blocked Vercel Request. (Likely expired token)", 
                 details: text.substring(0, 150) 
             });
         }
